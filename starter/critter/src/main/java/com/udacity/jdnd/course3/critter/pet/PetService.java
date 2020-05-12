@@ -1,8 +1,8 @@
 package com.udacity.jdnd.course3.critter.pet;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,64 +25,48 @@ public class PetService {
 	PetRepository petRepository;
 	@Autowired
 	CustomerRepository customerRepository;
-
 	@Autowired
 	CustomerService customerService;
 
 	private static Logger log = Logger.getLogger(PetService.class);
 
-	public PetDTO savePet(PetDTO petDTO) throws CustomerNotFound {
+	public PetEntity savePet(PetEntity pet, long ownerId) throws CustomerNotFound {
 
-		Optional<CustomerEntity> customerEntity = customerRepository.findById(petDTO.getOwnerId());
+		Optional<CustomerEntity> customerEntity = customerRepository.findById(ownerId);
+
 		if (customerEntity.isPresent()) {
-
-			PetEntity pet = new PetEntity(petDTO.getType(), petDTO.getName(), petDTO.getBirthDate(), petDTO.getNotes(),
-					customerEntity.get());
-			
-			pet =  petRepository.save(pet);
+			pet.setCustomer(customerEntity.get());
+			pet = petRepository.save(pet);
 
 			customerService.addPetToCustomer(pet, customerEntity.get());
-			
-			return entityToDTO(pet);
+			return pet;
 		} else {
 			log.error("Customer does not exists!");
 			throw new CustomerNotFound();
 		}
 	}
 
-	public PetDTO getPet(Long petId) throws PetNotFound {
-		PetDTO petDTO = null;
-
-		Optional<PetEntity> pet = petRepository.findById(petId);
-		if (pet.isPresent())
-			petDTO = entityToDTO(pet.get());
-		else
-			throw new PetNotFound();
-
-		return petDTO;
+	public PetEntity getPet(Long petId) throws PetNotFound {
+		return this.petRepository.findById(petId).orElseThrow(() -> new PetNotFound());
 	}
 
-	public List<PetDTO> getAllPets() {
-		return petRepository.findAll().stream().map(petEntity -> entityToDTO(petEntity)).collect(Collectors.toList());
+	public List<PetEntity> getAllPets() {
+		return petRepository.findAll();
 	}
 
-	public List<PetDTO> getPetsByOwner(long ownerId) {
+	public List<PetEntity> getPetsByOwner(long ownerId) {
 		Optional<CustomerEntity> customer = customerRepository.findById(ownerId);
 
-		List<PetDTO> responsePetsList = null;
+		List<PetEntity> petList = new ArrayList<PetEntity>();
 
 		if (customer.isPresent()) {
-			responsePetsList = petRepository.findAllByCustomer(customer.get()).stream()
-					.map(petEntity -> entityToDTO(petEntity)).collect(Collectors.toList());
+			petList = petRepository.findAllByCustomer(customer.get());
 		} else {
 			log.error(ExceptionConstants.CUSTOMER_NOT_FOUND);
 		}
 
-		return responsePetsList;
+		return petList;
+
 	}
 
-	public static PetDTO entityToDTO(PetEntity petEntity) {
-		return new PetDTO(petEntity.getId(), petEntity.getType(), petEntity.getName(), petEntity.getCustomer().getId(),
-				petEntity.getBirthDate(), petEntity.getPetNotes());
-	}
 }

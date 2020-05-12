@@ -30,47 +30,30 @@ public class ScheduleService {
 	@Autowired
 	CustomerRepository customerRepository;
 
-	public ScheduleDTO saveSchedule(ScheduleDTO scheduleDTO) {
-		List<EmployeeEntity> employees = scheduleDTO.getEmployeeIds().stream()
+	public ScheduleEntity saveSchedule(ScheduleEntity schedule, List<Long> empList, List<Long> petList) {
+		List<EmployeeEntity> employees = empList.stream()
 				.map(employeeId -> employeeRepository.findById(employeeId).get()).collect(Collectors.toList());
-		List<PetEntity> pets = scheduleDTO.getPetIds().stream().map(petId -> petRepository.findById(petId).get())
+		List<PetEntity> pets = petList.stream().map(petId -> petRepository.findById(petId).get())
 				.collect(Collectors.toList());
 
-		return entityToDTO(scheduleRepository
-				.save(new ScheduleEntity(employees, pets, scheduleDTO.getDate(), scheduleDTO.getActivities())));
+		return scheduleRepository
+				.save(new ScheduleEntity(employees, pets, schedule.getDate(), schedule.getActivities()));
 	}
 
-	public List<ScheduleDTO> getAllSchedule() {
-		return scheduleRepository.findAll().stream().map(scheduleEntity -> entityToDTO(scheduleEntity))
-				.collect(Collectors.toList());
+	public List<ScheduleEntity> getAllSchedule() {
+		return scheduleRepository.findAll();
 	}
 
-	public List<ScheduleDTO> getScheduleForPet(Long petId) {
-		return scheduleRepository.getAllByPetsContains(petRepository.getOne(petId)).stream()
-				.map(scheduleEntity -> entityToDTO(scheduleEntity)).collect(Collectors.toList());
+	public List<ScheduleEntity> getScheduleForPet(Long petId) {
+		return scheduleRepository.getAllByPetsContains(petRepository.getOne(petId));
 	}
 
-	public List<ScheduleDTO> getScheduleForEmployee(Long employeeId) {
-		return scheduleRepository.getAllByEmployeesContains(employeeRepository.getOne(employeeId)).stream()
-				.map(scheduleEntity -> entityToDTO(scheduleEntity)).collect(Collectors.toList());
+	public List<ScheduleEntity> getScheduleForEmployee(Long employeeId) {
+		return scheduleRepository.getAllByEmployeesContains(employeeRepository.getOne(employeeId));
 	}
 
-	public List<ScheduleDTO> getScheduleByPet(Long petId) {
-		return scheduleRepository.getAllByPetsContains(petRepository.getOne(petId)).stream()
-				.map(scheduleEntity -> entityToDTO(scheduleEntity)).collect(Collectors.toList());
-	}
-
-	public List<ScheduleDTO> getScheduleByCustomer(Long customerId) {
-		return scheduleRepository.getAllByPetsIn(customerRepository.getOne(customerId).getPets()).stream()
-				.map(scheduleEntity -> entityToDTO(scheduleEntity)).collect(Collectors.toList());
-	}
-
-	public ScheduleDTO entityToDTO(ScheduleEntity scheduleEntity) {
-		List<Long> employeeIds = scheduleEntity.getEmployees().stream().map(employee -> employee.getId())
-				.collect(Collectors.toList());
-		List<Long> petIds = scheduleEntity.getPets().stream().map(pet -> pet.getId()).collect(Collectors.toList());
-		return new ScheduleDTO(scheduleEntity.getId(), employeeIds, petIds, scheduleEntity.getDate(),
-				scheduleEntity.getActivities());
+	public List<ScheduleEntity> getScheduleByCustomer(Long customerId) {
+		return scheduleRepository.getAllByPetsIn(customerRepository.getOne(customerId).getPets());
 	}
 
 }

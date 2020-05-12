@@ -81,13 +81,12 @@ public class PetEntity {
 		this.id = id;
 	}
 
-	public PetEntity(PetType type, String name, LocalDate birthDate, String petNotes, CustomerEntity customer) {
+	public PetEntity(PetType type, String name, LocalDate birthDate, String petNotes) {
 		super();
 		this.type = type;
 		this.name = name;
 		this.birthDate = birthDate;
 		this.petNotes = petNotes;
-		this.customer = customer;
 	}
 	
 

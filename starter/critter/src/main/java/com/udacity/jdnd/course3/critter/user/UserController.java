@@ -1,13 +1,25 @@
 package com.udacity.jdnd.course3.critter.user;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-
-import com.udacity.jdnd.course3.critter.entities.CustomerEntity;
-
 import java.time.DayOfWeek;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.udacity.jdnd.course3.critter.entities.CustomerEntity;
+import com.udacity.jdnd.course3.critter.entities.EmployeeEntity;
+import com.udacity.jdnd.course3.critter.exceptions.EmployeeNotFound;
+import com.udacity.jdnd.course3.critter.exceptions.ExceptionConstants;
 
 /**
  * Handles web requests related to Users.
@@ -20,6 +32,8 @@ import java.util.Set;
 @RequestMapping("/user")
 public class UserController {
 
+	private static Logger log = Logger.getLogger(UserController.class);
+
 	@Autowired
 	CustomerService customerService;
 
@@ -28,28 +42,39 @@ public class UserController {
 
 	@PostMapping("/customer")
 	public CustomerDTO saveCustomer(@RequestBody CustomerDTO customerDTO) {
-		return customerService.saveCustomer(customerDTO);
+		return entityToDTO(
+				customerService.saveCustomer(new CustomerEntity(customerDTO.getName(), customerDTO.getPhoneNumber())));
 	}
 
 	@GetMapping("/customer")
 	public List<CustomerDTO> getAllCustomers() {
-		return customerService.getAllCustomers();
+		return customerService.getAllCustomers().stream().map(customer -> entityToDTO(customer))
+				.collect(Collectors.toList());
 	}
 
 	@GetMapping("/customer/pet/{petId}")
 	public CustomerDTO getOwnerByPet(@PathVariable long petId) {
-		return customerService.getOwnerByPet(petId);
+		return entityToDTO(customerService.getOwnerByPet(petId));
 	}
 
 	@PostMapping("/employee")
 	public EmployeeDTO saveEmployee(@RequestBody EmployeeDTO employeeDTO) {
-		return employeeService.saveEmployee(employeeDTO);
+		return entityToDTO(employeeService.saveEmployee(
+				new EmployeeEntity(employeeDTO.getName(), employeeDTO.getSkills(), employeeDTO.getDaysAvailable())));
 	}
 
-	// Converted from @PostMapping to @GetMapping
+	// Converted from @PostMapping to @GetMapping - wrong endpoint in provided
+	// postman requests
 	@GetMapping("/employee/{employeeId}")
 	public EmployeeDTO getEmployee(@PathVariable long employeeId) {
-		return employeeService.getEmployee(employeeId);
+		EmployeeDTO employee = new EmployeeDTO();
+		try {
+			employee = entityToDTO(employeeService.getEmployee(employeeId));
+		} catch (EmployeeNotFound e) {
+			e.printStackTrace();
+			log.error(ExceptionConstants.EMPLOYEE_NOT_FOUND);
+		}
+		return employee;
 	}
 
 	@PutMapping("/employee/{employeeId}")
@@ -59,7 +84,21 @@ public class UserController {
 
 	@GetMapping("/employee/availability")
 	public List<EmployeeDTO> findEmployeesForService(@RequestBody EmployeeRequestDTO employeeDTO) {
-		return employeeService.getEmployeesForService(employeeDTO.getDate(), employeeDTO.getSkills());
+		return employeeService.getEmployeesForService(employeeDTO.getDate(), employeeDTO.getSkills()).stream()
+				.map(employee -> entityToDTO(employee)).collect(Collectors.toList());
 	}
 
+	public static CustomerDTO entityToDTO(CustomerEntity customerEntity) {
+		List<Long> pets = new ArrayList<Long>();
+		if (customerEntity.getPets() != null) {
+			pets = customerEntity.getPets().stream().map(pet -> pet.getId()).collect(Collectors.toList());
+		}
+
+		return new CustomerDTO(customerEntity.getId(), customerEntity.getName(), customerEntity.getPhoneNumber(), pets);
+	}
+
+	public static EmployeeDTO entityToDTO(EmployeeEntity employeeEntity) {
+		return new EmployeeDTO(employeeEntity.getId(), employeeEntity.getName(), employeeEntity.getSkills(),
+				employeeEntity.getWorkDays());
+	}
 }

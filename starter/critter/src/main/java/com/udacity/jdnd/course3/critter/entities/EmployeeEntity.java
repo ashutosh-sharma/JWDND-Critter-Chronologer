@@ -80,4 +80,13 @@ public class EmployeeEntity {
 		this.name = name;
 		this.skills = skills;
 	}
+
+	public EmployeeEntity(String name, Set<EmployeeSkill> skills, Set<DayOfWeek> workDays) {
+		super();
+		this.name = name;
+		this.skills = skills;
+		this.workDays = workDays;
+	}
+	
+	
 }

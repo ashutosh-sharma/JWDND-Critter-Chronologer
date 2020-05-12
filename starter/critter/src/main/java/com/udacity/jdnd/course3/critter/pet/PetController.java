@@ -5,13 +5,14 @@ import org.omg.CosNaming.NamingContextPackage.NotFound;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import com.udacity.jdnd.course3.critter.entities.PetEntity;
 import com.udacity.jdnd.course3.critter.exceptions.CustomerNotFound;
 import com.udacity.jdnd.course3.critter.exceptions.ExceptionConstants;
 import com.udacity.jdnd.course3.critter.exceptions.PetNotFound;
-
 import javassist.NotFoundException;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Handles web requests related to Pets.
@@ -41,9 +42,9 @@ public class PetController {
 	public PetDTO savePet(@RequestBody PetDTO petDTO) {
 
 		try {
-			petDTO = petService.savePet(petDTO);
+			PetEntity pet = new PetEntity(petDTO.getType(), petDTO.getName(), petDTO.getBirthDate(), petDTO.getNotes());
+			petDTO = entityToDTO(petService.savePet(pet, petDTO.getOwnerId()));
 		} catch (CustomerNotFound e) {
-			// return empty petDTO if associated owner not found
 			petDTO = null;
 			log.error(ExceptionConstants.CUSTOMER_NOT_FOUND);
 		}
@@ -54,9 +55,8 @@ public class PetController {
 	public PetDTO getPet(@PathVariable long petId) {
 		PetDTO petDTO = null;
 		try {
-			petDTO = petService.getPet(petId);
+			return entityToDTO(petService.getPet(petId));
 		} catch (PetNotFound e) {
-			// return empty petDTO if associated owner not found
 			e.printStackTrace();
 			log.error(ExceptionConstants.PET_NOT_FOUND);
 		}
@@ -65,11 +65,17 @@ public class PetController {
 
 	@GetMapping
 	public List<PetDTO> getPets() {
-		return petService.getAllPets();
+		return petService.getAllPets().stream().map(petEntity -> entityToDTO(petEntity)).collect(Collectors.toList());
 	}
 
 	@GetMapping("/owner/{ownerId}")
 	public List<PetDTO> getPetsByOwner(@PathVariable long ownerId) {
-		return petService.getPetsByOwner(ownerId);
+		return petService.getPetsByOwner(ownerId).stream().map(petEntity -> entityToDTO(petEntity))
+				.collect(Collectors.toList());
+	}
+
+	public static PetDTO entityToDTO(PetEntity petEntity) {
+		return new PetDTO(petEntity.getId(), petEntity.getType(), petEntity.getName(), petEntity.getCustomer().getId(),
+				petEntity.getBirthDate(), petEntity.getPetNotes());
 	}
 }

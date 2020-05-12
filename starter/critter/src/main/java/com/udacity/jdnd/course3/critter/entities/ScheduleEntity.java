@@ -85,4 +85,12 @@ public class ScheduleEntity {
 		this.activities = activities;
 	}
 
+	public ScheduleEntity(LocalDate date, Set<EmployeeSkill> activities) {
+		super();
+		this.date = date;
+		this.activities = activities;
+	}
+	
+	
+
 }
